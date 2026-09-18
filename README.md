@@ -51,3 +51,16 @@ The following screenshot shows the Expense Dashboard created using Flutter widge
 
 ![Experiment 2(A) Output](screenshots/exp2a_output.png)
 
+
+
+## Experiment 2(B) – Buttons and Basic Interaction
+
+In this experiment, basic interaction is added to the Personal Expenses Tracker application. An Add Expense button is created using the ElevatedButton widget. A StatefulWidget and setState() are used to update the total expense when the button is pressed. This makes the application interactive and prepares it for adding more expense management features in the upcoming experiments.
+
+## Experiment 2(B) Output
+
+The following screenshot shows the Personal Expenses Tracker application with the Add Expense button and updated expense interaction.
+
+![Experiment 2(B) Output](screenshots/exp2b_output.png)
+
+
