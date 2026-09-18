@@ -14,7 +14,7 @@ The final application is expected to provide a simple and user-friendly interfac
 
 The final output is expected to contain a dashboard showing the total expenses, a list of recent expenses with their categories and amounts, and an option to add a new expense.
 
-![Expected App](screenshots/expected_app.png)
+![Expected App](screenshots/expected app.png)
 
 
 ## Experiment 1(A) – Introduction to Flutter
