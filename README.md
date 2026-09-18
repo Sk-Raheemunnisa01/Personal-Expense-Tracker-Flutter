@@ -64,3 +64,16 @@ The following screenshot shows the Personal Expenses Tracker application with th
 ![Experiment 2(B) Output](screenshots/exp2b_output.png)
 
 
+
+## Experiment 3(A) – Text Fields and User Input
+
+In this experiment, text fields are added to the Personal Expenses Tracker application to allow the user to enter expense details. TextField widgets and TextEditingController are used to collect the expense name and amount from the user. When the Add Expense button is pressed, the entered expense is added to the expense list and the total expense is updated using setState(). This experiment helps in understanding user input and handling data in a Flutter application.
+
+## Experiment 3(A) Output
+
+The following screenshot shows the Personal Expenses Tracker application with text fields for entering an expense name and amount, along with the updated expense list.
+
+![Experiment 3(A) Output](screenshots/exp3a_output.png)
+
+
+
