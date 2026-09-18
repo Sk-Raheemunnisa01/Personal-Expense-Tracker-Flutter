@@ -39,3 +39,15 @@ In this experiment, a basic Flutter application is created using widgets such as
 The following screenshot shows the basic Personal Expenses Tracker interface created using Flutter widgets.
 
 ![Experiment 1(B) Output](screenshots/exp1b_output.png)
+
+
+## Experiment 2(A) – Flutter Widgets and Layouts
+
+In this experiment, the Personal Expenses Tracker interface is improved using different Flutter widgets and layouts. Widgets such as `Card`, `Row`, `Column`, `Expanded`, `Padding`, and `ListTile` are used to arrange the expense information. The screen displays the total expense, monthly expense and a list of recent expenses. This experiment helps in understanding how Flutter widgets can be combined to create a simple and organized user interface.
+
+## Experiment 2(A) Output
+
+The following screenshot shows the Expense Dashboard created using Flutter widgets and layouts.
+
+![Experiment 2(A) Output](screenshots/exp2a_output.png)
+

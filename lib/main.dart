@@ -11,45 +11,121 @@ class PersonalExpensesApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // MaterialApp provides the basic Flutter app structure
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Personal Expenses Tracker',
 
-      // Scaffold provides the basic screen layout
+      // Creates the main screen
       home: Scaffold(
-        // AppBar displays the title at the top
         appBar: AppBar(
           title: const Text('Personal Expenses Tracker'),
         ),
 
-        // Center places the content in the middle of the screen
-        body: Center(
-          // Column arranges widgets vertically
+        // Column arranges the widgets vertically
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Displays the main heading
+              // Displays the page heading
               const Text(
-                'My Expenses',
+                'Expense Dashboard',
                 style: TextStyle(
-                  fontSize: 26,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
 
-              // Adds space between the widgets
               const SizedBox(height: 20),
 
-              // Container is used to hold the expense information
-              Container(
-                padding: const EdgeInsets.all(20),
+              // Row places the expense cards side by side
+              Row(
+                children: [
+                  // First expense card
+                  Expanded(
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: const [
+                            Text(
+                              'Total Expense',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                            SizedBox(height: 10),
+                            Text(
+                              '₹2,450',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
 
-                // Displays the total expense
-                child: const Text(
-                  'Total Expense: ₹2,450',
-                  style: TextStyle(fontSize: 20),
+                  const SizedBox(width: 10),
+
+                  // Second expense card
+                  Expanded(
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: const [
+                            Text(
+                              'This Month',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                            SizedBox(height: 10),
+                            Text(
+                              '₹1,850',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // Displays the recent expenses heading
+              const Text(
+                'Recent Expenses',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
+              ),
+
+              const SizedBox(height: 10),
+
+              // List of recent expenses
+              const ListTile(
+                leading: Icon(Icons.fastfood),
+                title: Text('Food'),
+                trailing: Text('₹250'),
+              ),
+
+              const ListTile(
+                leading: Icon(Icons.directions_bus),
+                title: Text('Transport'),
+                trailing: Text('₹120'),
+              ),
+
+              const ListTile(
+                leading: Icon(Icons.shopping_bag),
+                title: Text('Shopping'),
+                trailing: Text('₹500'),
               ),
             ],
           ),
