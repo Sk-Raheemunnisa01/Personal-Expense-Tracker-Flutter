@@ -85,5 +85,15 @@ The following screenshot shows the Personal Expenses Tracker application with ca
 
 ![Experiment 3(B) Output](screenshots/exp3b_output.png)
 
+## Experiment 4(A) – Delete Expense and List Management
+
+In this experiment, a delete option is added to the Personal Expenses Tracker application. An IconButton with a delete icon is used to remove expenses from the list. The setState() method is used to update the application whenever an expense is deleted. The total expense is automatically recalculated after deleting an item. This experiment helps in understanding list management and state updates in Flutter.
+
+## Experiment 4(A) Output
+
+The following screenshot shows the Personal Expenses Tracker application with the expense list and delete option.
+
+![Experiment 4(A) Output](screenshots/exp4a_output.png)
+
 
 

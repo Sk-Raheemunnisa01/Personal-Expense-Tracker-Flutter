@@ -4,7 +4,6 @@ void main() {
   runApp(const MyApp());
 }
 
-// Main application
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -13,15 +12,11 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Personal Expenses Tracker',
-      theme: ThemeData(
-        primarySwatch: Colors.deepPurple,
-      ),
       home: const ExpensePage(),
     );
   }
 }
 
-// Expense page
 class ExpensePage extends StatefulWidget {
   const ExpensePage({super.key});
 
@@ -36,7 +31,6 @@ class _ExpensePageState extends State<ExpensePage> {
   String selectedCategory = 'Food';
   DateTime selectedDate = DateTime.now();
 
-  // Available expense categories
   final List<String> categories = [
     'Food',
     'Transport',
@@ -48,6 +42,7 @@ class _ExpensePageState extends State<ExpensePage> {
   // Store expense details
   final List<Map<String, dynamic>> expenses = [];
 
+  // Calculate total expense
   double get totalExpense {
     double total = 0;
 
@@ -58,23 +53,7 @@ class _ExpensePageState extends State<ExpensePage> {
     return total;
   }
 
-  // Select expense date
-  Future<void> selectDate() async {
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-    );
-
-    if (pickedDate != null) {
-      setState(() {
-        selectedDate = pickedDate;
-      });
-    }
-  }
-
-  // Add expense to the list
+  // Add a new expense
   void addExpense() {
     String name = nameController.text;
     double? amount = double.tryParse(amountController.text);
@@ -82,7 +61,7 @@ class _ExpensePageState extends State<ExpensePage> {
     if (name.isEmpty || amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter a valid name and amount'),
+          content: Text('Please enter valid expense details'),
         ),
       );
       return;
@@ -101,6 +80,29 @@ class _ExpensePageState extends State<ExpensePage> {
     });
   }
 
+  // Delete an expense
+  void deleteExpense(int index) {
+    setState(() {
+      expenses.removeAt(index);
+    });
+  }
+
+  // Select date
+  Future<void> selectDate() async {
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+
+    if (pickedDate != null) {
+      setState(() {
+        selectedDate = pickedDate;
+      });
+    }
+  }
+
   @override
   void dispose() {
     nameController.dispose();
@@ -113,7 +115,6 @@ class _ExpensePageState extends State<ExpensePage> {
     return Scaffold(
       backgroundColor: Colors.purple.shade50,
 
-      // App bar
       appBar: AppBar(
         title: const Text('Personal Expenses Tracker'),
         centerTitle: true,
@@ -126,7 +127,6 @@ class _ExpensePageState extends State<ExpensePage> {
 
         child: Column(
           children: [
-            // Expense name field
             TextField(
               controller: nameController,
               decoration: const InputDecoration(
@@ -138,7 +138,6 @@ class _ExpensePageState extends State<ExpensePage> {
 
             const SizedBox(height: 12),
 
-            // Expense amount field
             TextField(
               controller: amountController,
               keyboardType: TextInputType.number,
@@ -151,7 +150,6 @@ class _ExpensePageState extends State<ExpensePage> {
 
             const SizedBox(height: 12),
 
-            // Category selection
             DropdownButtonFormField<String>(
               value: selectedCategory,
               decoration: const InputDecoration(
@@ -171,9 +169,8 @@ class _ExpensePageState extends State<ExpensePage> {
               },
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
-            // Date selection button
             OutlinedButton.icon(
               onPressed: selectDate,
               icon: const Icon(Icons.calendar_month),
@@ -182,9 +179,8 @@ class _ExpensePageState extends State<ExpensePage> {
               ),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
-            // Add expense button
             ElevatedButton.icon(
               onPressed: addExpense,
               icon: const Icon(Icons.add),
@@ -195,9 +191,8 @@ class _ExpensePageState extends State<ExpensePage> {
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 15),
 
-            // Display total expense
             Text(
               'Total Expense: ₹${totalExpense.toStringAsFixed(2)}',
               style: const TextStyle(
@@ -207,9 +202,9 @@ class _ExpensePageState extends State<ExpensePage> {
               ),
             ),
 
-            const Divider(height: 24),
+            const Divider(height: 25),
 
-            // Display expense list
+            // Display expense list with delete option
             Expanded(
               child: expenses.isEmpty
                   ? const Center(
@@ -222,7 +217,6 @@ class _ExpensePageState extends State<ExpensePage> {
 
                         return Card(
                           color: Colors.white,
-                          elevation: 3,
                           child: ListTile(
                             leading: const CircleAvatar(
                               backgroundColor: Colors.deepPurple,
@@ -231,19 +225,37 @@ class _ExpensePageState extends State<ExpensePage> {
                                 color: Colors.white,
                               ),
                             ),
+
                             title: Text(expense['name']),
+
                             subtitle: Text(
-                              '${expense['category']} • '
+                              '${expense['category']} - '
                               '${expense['date'].day}/'
                               '${expense['date'].month}/'
                               '${expense['date'].year}',
                             ),
-                            trailing: Text(
-                              '₹${expense['amount'].toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.deepPurple,
-                              ),
+
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '₹${expense['amount'].toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+
+                                // Delete button
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete,
+                                    color: Colors.red,
+                                  ),
+                                  onPressed: () {
+                                    deleteExpense(index);
+                                  },
+                                ),
+                              ],
                             ),
                           ),
                         );
