@@ -150,5 +150,24 @@ The dashboard displays the total expense amount, category-wise summary, colourfu
 
 ![Experiment 5(B) Output](screenshots/exp5b_output.png)
 
+## Experiment 6(A): Expense Filtering by Category
+
+### Description
+In this experiment, category filtering was added to the Personal Expenses Tracker. Users can filter their expenses based on different categories.
+
+### Features
+- Added category filters: All, Food, Transport, Shopping, Education and Other.
+- Displays only expenses belonging to the selected category.
+- Added category-wise expense summary.
+- Maintains add, edit and delete expense features.
+- Saves expense details using SharedPreferences.
+
+### Expected App Image
+The application displays category filter chips and the expenses based on the selected category.
+
+### Experiment 6(A) Output
+![Experiment 6(A) Output](screenshots/exp6a_output.png)
+
+
 
 
