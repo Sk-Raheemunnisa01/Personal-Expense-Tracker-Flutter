@@ -1,237 +1,258 @@
 import 'package:flutter/material.dart';
 
-// Starting point of the Flutter application
 void main() {
-  runApp(const PersonalExpensesTracker());
+  runApp(const MyApp());
 }
 
-// Main application widget
-class PersonalExpensesTracker extends StatelessWidget {
-  const PersonalExpensesTracker({super.key});
+// Main application
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Personal Expenses Tracker',
-
-      // Home screen of the application
-      home: const ExpenseHomePage(),
+      theme: ThemeData(
+        primarySwatch: Colors.deepPurple,
+      ),
+      home: const ExpensePage(),
     );
   }
 }
 
-// Stateful widget is used because the expense list changes
-class ExpenseHomePage extends StatefulWidget {
-  const ExpenseHomePage({super.key});
+// Expense page
+class ExpensePage extends StatefulWidget {
+  const ExpensePage({super.key});
 
   @override
-  State<ExpenseHomePage> createState() => _ExpenseHomePageState();
+  State<ExpensePage> createState() => _ExpensePageState();
 }
 
-// State of the expense home page
-class _ExpenseHomePageState extends State<ExpenseHomePage> {
+class _ExpensePageState extends State<ExpensePage> {
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController amountController = TextEditingController();
 
-  // Controller to get the expense name entered by the user
-  final TextEditingController expenseNameController =
-      TextEditingController();
+  String selectedCategory = 'Food';
+  DateTime selectedDate = DateTime.now();
 
-  // Controller to get the expense amount entered by the user
-  final TextEditingController amountController =
-      TextEditingController();
-
-  // List to store expenses
-  final List<Map<String, dynamic>> expenses = [
-    {
-      'name': 'Food',
-      'amount': 250.0,
-    },
-    {
-      'name': 'Transport',
-      'amount': 120.0,
-    },
-    {
-      'name': 'Shopping',
-      'amount': 500.0,
-    },
+  // Available expense categories
+  final List<String> categories = [
+    'Food',
+    'Transport',
+    'Shopping',
+    'Education',
+    'Other',
   ];
 
-  // Function to add a new expense
+  // Store expense details
+  final List<Map<String, dynamic>> expenses = [];
+
+  double get totalExpense {
+    double total = 0;
+
+    for (var expense in expenses) {
+      total += expense['amount'];
+    }
+
+    return total;
+  }
+
+  // Select expense date
+  Future<void> selectDate() async {
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+
+    if (pickedDate != null) {
+      setState(() {
+        selectedDate = pickedDate;
+      });
+    }
+  }
+
+  // Add expense to the list
   void addExpense() {
-    // Get the values entered by the user
-    String name = expenseNameController.text;
+    String name = nameController.text;
     double? amount = double.tryParse(amountController.text);
 
-    // Check whether the input is valid
-    if (name.isNotEmpty && amount != null) {
-      setState(() {
-        // Add the new expense to the list
-        expenses.add({
-          'name': name,
-          'amount': amount,
-        });
+    if (name.isEmpty || amount == null || amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid name and amount'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      expenses.add({
+        'name': name,
+        'amount': amount,
+        'category': selectedCategory,
+        'date': selectedDate,
       });
 
-      // Clear the text fields after adding the expense
-      expenseNameController.clear();
+      nameController.clear();
       amountController.clear();
-    }
+    });
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    amountController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Calculate the total of all expenses
-    double totalExpense = 0;
-
-    for (var expense in expenses) {
-      totalExpense += expense['amount'];
-    }
-
     return Scaffold(
+      backgroundColor: Colors.purple.shade50,
 
-      // Application title bar
+      // App bar
       appBar: AppBar(
         title: const Text('Personal Expenses Tracker'),
         centerTitle: true,
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
       ),
 
-      // Main content
       body: Padding(
         padding: const EdgeInsets.all(16),
 
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            // Page heading
-            const Text(
-              'Expense Summary',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 15),
-
-            // Display total expenses
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-
-                  // Total expense label
-                  const Text(
-                    'Total Expenses',
-                    style: TextStyle(fontSize: 18),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // Display total amount
-                  Text(
-                    '₹${totalExpense.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Expense name input field
+            // Expense name field
             TextField(
-              controller: expenseNameController,
+              controller: nameController,
               decoration: const InputDecoration(
                 labelText: 'Expense Name',
                 border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.edit),
               ),
             ),
 
             const SizedBox(height: 12),
 
-            // Expense amount input field
+            // Expense amount field
             TextField(
               controller: amountController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 labelText: 'Amount',
                 border: OutlineInputBorder(),
-                prefixText: '₹ ',
+                prefixIcon: Icon(Icons.currency_rupee),
               ),
             ),
 
             const SizedBox(height: 12),
 
-            // Button to add the entered expense
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: addExpense,
-                icon: const Icon(Icons.add),
-                label: const Text('Add Expense'),
+            // Category selection
+            DropdownButtonFormField<String>(
+              value: selectedCategory,
+              decoration: const InputDecoration(
+                labelText: 'Select Category',
+                border: OutlineInputBorder(),
+              ),
+              items: categories.map((category) {
+                return DropdownMenuItem(
+                  value: category,
+                  child: Text(category),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  selectedCategory = value!;
+                });
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            // Date selection button
+            OutlinedButton.icon(
+              onPressed: selectDate,
+              icon: const Icon(Icons.calendar_month),
+              label: Text(
+                'Date: ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
-            // Recent expenses heading
-            const Text(
-              'Recent Expenses',
-              style: TextStyle(
+            // Add expense button
+            ElevatedButton.icon(
+              onPressed: addExpense,
+              icon: const Icon(Icons.add),
+              label: const Text('Add Expense'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepPurple,
+                foregroundColor: Colors.white,
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Display total expense
+            Text(
+              'Total Expense: ₹${totalExpense.toStringAsFixed(2)}',
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
+                color: Colors.deepPurple,
               ),
             ),
 
-            const SizedBox(height: 10),
+            const Divider(height: 24),
 
-            // Display the expense list
+            // Display expense list
             Expanded(
-              child: ListView.builder(
-                itemCount: expenses.length,
+              child: expenses.isEmpty
+                  ? const Center(
+                      child: Text('No expenses added yet!'),
+                    )
+                  : ListView.builder(
+                      itemCount: expenses.length,
+                      itemBuilder: (context, index) {
+                        final expense = expenses[index];
 
-                itemBuilder: (context, index) {
-                  // Get the current expense
-                  final expense = expenses[index];
-
-                  return Card(
-                    child: ListTile(
-
-                      // Expense icon
-                      leading: const Icon(Icons.account_balance_wallet),
-
-                      // Expense name
-                      title: Text(expense['name']),
-
-                      // Expense amount
-                      trailing: Text(
-                        '₹${expense['amount'].toStringAsFixed(0)}',
-                      ),
+                        return Card(
+                          color: Colors.white,
+                          elevation: 3,
+                          child: ListTile(
+                            leading: const CircleAvatar(
+                              backgroundColor: Colors.deepPurple,
+                              child: Icon(
+                                Icons.currency_rupee,
+                                color: Colors.white,
+                              ),
+                            ),
+                            title: Text(expense['name']),
+                            subtitle: Text(
+                              '${expense['category']} • '
+                              '${expense['date'].day}/'
+                              '${expense['date'].month}/'
+                              '${expense['date'].year}',
+                            ),
+                            trailing: Text(
+                              '₹${expense['amount'].toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.deepPurple,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
           ],
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    // Dispose controllers when the screen is removed
-    expenseNameController.dispose();
-    amountController.dispose();
-
-    super.dispose();
   }
 }

@@ -75,5 +75,15 @@ The following screenshot shows the Personal Expenses Tracker application with te
 
 ![Experiment 3(A) Output](screenshots/exp3a_output.png)
 
+## Experiment 3(B) – Category and Date Selection
+
+In this experiment, category and date selection features are added to the Personal Expenses Tracker application. A dropdown menu is used to select the expense category, and a date picker is used to select the expense date. The selected category and date are stored along with the expense details.
+
+## Experiment 3(B) Output
+
+The following screenshot shows the Personal Expenses Tracker application with category selection, date selection and expense details.
+
+![Experiment 3(B) Output](screenshots/exp3b_output.png)
+
 
 
