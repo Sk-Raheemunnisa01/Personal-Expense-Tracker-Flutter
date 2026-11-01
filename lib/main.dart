@@ -18,30 +18,26 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.deepPurple,
       ),
-      home: const ExpenseHomePage(),
+      home: const ExpenseDashboard(),
     );
   }
 }
 
-class ExpenseHomePage extends StatefulWidget {
-  const ExpenseHomePage({super.key});
+class ExpenseDashboard extends StatefulWidget {
+  const ExpenseDashboard({super.key});
 
   @override
-  State<ExpenseHomePage> createState() => _ExpenseHomePageState();
+  State<ExpenseDashboard> createState() => _ExpenseDashboardState();
 }
 
-class _ExpenseHomePageState extends State<ExpenseHomePage> {
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController amountController = TextEditingController();
-
+class _ExpenseDashboardState extends State<ExpenseDashboard> {
   List<Map<String, dynamic>> expenses = [];
-
-  String selectedCategory = 'Food';
-  DateTime selectedDate = DateTime.now();
-
   bool isLoading = true;
 
+  String selectedFilter = 'All';
+
   final List<String> categories = [
+    'All',
     'Food',
     'Transport',
     'Shopping',
@@ -49,33 +45,21 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
     'Other',
   ];
 
-  // Load saved expenses from local storage.
-  Future<void> loadExpenses() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? savedData = prefs.getString('expenses');
+  final Map<String, IconData> categoryIcons = {
+    'Food': Icons.restaurant,
+    'Transport': Icons.directions_bus,
+    'Shopping': Icons.shopping_bag,
+    'Education': Icons.school,
+    'Other': Icons.category,
+  };
 
-    if (savedData != null) {
-      List<dynamic> decodedData = jsonDecode(savedData);
-
-      setState(() {
-        expenses = decodedData.map((item) {
-          return Map<String, dynamic>.from(item);
-        }).toList();
-      });
-    }
-
-    setState(() {
-      isLoading = false;
-    });
-  }
-
-  // Save expenses in local storage.
-  Future<void> saveExpenses() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    String encodedData = jsonEncode(expenses);
-    await prefs.setString('expenses', encodedData);
-  }
+  final Map<String, Color> categoryColors = {
+    'Food': Colors.orange,
+    'Transport': Colors.blue,
+    'Shopping': Colors.deepPurple,
+    'Education': Colors.green,
+    'Other': Colors.pink,
+  };
 
   @override
   void initState() {
@@ -83,13 +67,33 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
     loadExpenses();
   }
 
-  @override
-  void dispose() {
-    nameController.dispose();
-    amountController.dispose();
-    super.dispose();
+  // Load saved expenses.
+  Future<void> loadExpenses() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? savedData = prefs.getString('expenses');
+
+    if (savedData != null) {
+      List<dynamic> decoded = jsonDecode(savedData);
+
+      expenses = decoded.map((item) {
+        return Map<String, dynamic>.from(item);
+      }).toList();
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      isLoading = false;
+    });
   }
 
+  // Save expenses locally.
+  Future<void> saveExpenses() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('expenses', jsonEncode(expenses));
+  }
+
+  // Calculate total expense.
   double get totalExpense {
     double total = 0;
 
@@ -100,7 +104,7 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
     return total;
   }
 
-  // Calculate category-wise expenses.
+  // Calculate category-wise amount.
   double categoryTotal(String category) {
     double total = 0;
 
@@ -113,69 +117,140 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
     return total;
   }
 
+  // Filter expenses based on selected category.
+  List<Map<String, dynamic>> get filteredExpenses {
+    if (selectedFilter == 'All') {
+      return expenses;
+    }
+
+    return expenses.where((expense) {
+      return expense['category'] == selectedFilter;
+    }).toList();
+  }
+
   // Add a new expense.
   void addExpense() {
-    String name = nameController.text.trim();
-    double? amount = double.tryParse(amountController.text);
+    final nameController = TextEditingController();
+    final amountController = TextEditingController();
 
-    if (name.isEmpty || amount == null || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a valid name and amount'),
-        ),
-      );
-      return;
-    }
+    String selectedCategory = 'Food';
+    DateTime selectedDate = DateTime.now();
 
-    setState(() {
-      expenses.add({
-        'name': name,
-        'amount': amount,
-        'category': selectedCategory,
-        'date': selectedDate.toIso8601String(),
-      });
-
-      nameController.clear();
-      amountController.clear();
-      selectedDate = DateTime.now();
-    });
-
-    saveExpenses();
-  }
-
-  // Select date.
-  Future<void> pickDate() async {
-    DateTime? picked = await showDatePicker(
+    showDialog(
       context: context,
-      initialDate: selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2035),
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, updateDialog) {
+            return AlertDialog(
+              title: const Text('Add New Expense'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Expense Name',
+                      ),
+                    ),
+                    TextField(
+                      controller: amountController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Amount',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      value: selectedCategory,
+                      decoration: const InputDecoration(
+                        labelText: 'Category',
+                      ),
+                      items: categories.where((c) => c != 'All').map((c) {
+                        return DropdownMenuItem(
+                          value: c,
+                          child: Text(c),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        updateDialog(() {
+                          selectedCategory = value!;
+                        });
+                      },
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        DateTime? picked = await showDatePicker(
+                          context: dialogContext,
+                          initialDate: selectedDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2035),
+                        );
+
+                        if (picked != null) {
+                          updateDialog(() {
+                            selectedDate = picked;
+                          });
+                        }
+                      },
+                      child: Text(
+                        'Date: ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                    nameController.dispose();
+                    amountController.dispose();
+                  },
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    String name = nameController.text.trim();
+                    double? amount =
+                        double.tryParse(amountController.text);
+
+                    if (name.isEmpty || amount == null || amount <= 0) {
+                      return;
+                    }
+
+                    setState(() {
+                      expenses.add({
+                        'name': name,
+                        'amount': amount,
+                        'category': selectedCategory,
+                        'date': selectedDate.toIso8601String(),
+                      });
+                    });
+
+                    saveExpenses();
+
+                    Navigator.pop(dialogContext);
+                    nameController.dispose();
+                    amountController.dispose();
+                  },
+                  child: const Text('Add'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
-
-    if (picked != null) {
-      setState(() {
-        selectedDate = picked;
-      });
-    }
-  }
-
-  // Delete an expense.
-  void deleteExpense(int index) {
-    setState(() {
-      expenses.removeAt(index);
-    });
-
-    saveExpenses();
   }
 
   // Edit an expense.
   void editExpense(int index) {
     final expense = expenses[index];
 
-    TextEditingController editNameController =
+    final nameController =
         TextEditingController(text: expense['name']);
-
-    TextEditingController editAmountController =
+    final amountController =
         TextEditingController(text: expense['amount'].toString());
 
     String editCategory = expense['category'];
@@ -193,13 +268,13 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextField(
-                      controller: editNameController,
+                      controller: nameController,
                       decoration: const InputDecoration(
                         labelText: 'Expense Name',
                       ),
                     ),
                     TextField(
-                      controller: editAmountController,
+                      controller: amountController,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         labelText: 'Amount',
@@ -210,10 +285,10 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
                       decoration: const InputDecoration(
                         labelText: 'Category',
                       ),
-                      items: categories.map((category) {
+                      items: categories.where((c) => c != 'All').map((c) {
                         return DropdownMenuItem(
-                          value: category,
-                          child: Text(category),
+                          value: c,
+                          child: Text(c),
                         );
                       }).toList(),
                       onChanged: (value) {
@@ -222,7 +297,6 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
                         });
                       },
                     ),
-                    const SizedBox(height: 10),
                     TextButton(
                       onPressed: () async {
                         DateTime? picked = await showDatePicker(
@@ -248,17 +322,17 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
               actions: [
                 TextButton(
                   onPressed: () {
-                    editNameController.dispose();
-                    editAmountController.dispose();
                     Navigator.pop(dialogContext);
+                    nameController.dispose();
+                    amountController.dispose();
                   },
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    String name = editNameController.text.trim();
+                    String name = nameController.text.trim();
                     double? amount =
-                        double.tryParse(editAmountController.text);
+                        double.tryParse(amountController.text);
 
                     if (name.isEmpty || amount == null || amount <= 0) {
                       return;
@@ -275,9 +349,9 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
 
                     saveExpenses();
 
-                    editNameController.dispose();
-                    editAmountController.dispose();
                     Navigator.pop(dialogContext);
+                    nameController.dispose();
+                    amountController.dispose();
                   },
                   child: const Text('Save'),
                 ),
@@ -289,53 +363,113 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
     );
   }
 
-  // Display category-wise summary.
-  Widget buildCategorySummary(String category, IconData icon) {
-    double amount = categoryTotal(category);
+  // Delete an expense.
+  void deleteExpense(int index) {
+    setState(() {
+      expenses.removeAt(index);
+    });
 
+    saveExpenses();
+  }
+
+  // Display category summary.
+  Widget categoryCard(String category) {
+    double amount = categoryTotal(category);
     double percentage =
         totalExpense == 0 ? 0 : amount / totalExpense;
 
+    Color color = categoryColors[category]!;
+
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
+      margin: const EdgeInsets.symmetric(vertical: 4),
       child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
+        padding: const EdgeInsets.all(10),
+        child: Row(
           children: [
-            Row(
-              children: [
-                Icon(icon, color: Colors.deepPurple),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    category,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
+            CircleAvatar(
+              radius: 17,
+              backgroundColor: color.withAlpha(35),
+              child: Icon(
+                categoryIcons[category],
+                color: color,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        category,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text('₹${amount.toStringAsFixed(0)}'),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: LinearProgressIndicator(
+                      value: percentage,
+                      minHeight: 6,
+                      backgroundColor: Colors.grey.shade200,
+                      color: color,
                     ),
                   ),
-                ),
-                Text(
-                  '₹${amount.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            LinearProgressIndicator(
-              value: percentage,
-              minHeight: 8,
-              backgroundColor: Colors.deepPurple.shade100,
-              color: Colors.deepPurple,
-            ),
-            const SizedBox(height: 5),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                '${(percentage * 100).toStringAsFixed(1)}%',
-                style: const TextStyle(fontSize: 12),
+                ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Display an expense item.
+  Widget expenseItem(Map<String, dynamic> expense) {
+    int actualIndex = expenses.indexOf(expense);
+    DateTime date = DateTime.parse(expense['date']);
+    String category = expense['category'];
+
+    return Card(
+      child: ListTile(
+        dense: true,
+        leading: CircleAvatar(
+          radius: 17,
+          backgroundColor:
+              categoryColors[category]!.withAlpha(35),
+          child: Icon(
+            categoryIcons[category],
+            color: categoryColors[category],
+            size: 18,
+          ),
+        ),
+        title: Text(expense['name']),
+        subtitle: Text(
+          '$category • ${date.day}/${date.month}/${date.year}',
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '₹${(expense['amount'] as num).toStringAsFixed(0)}',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.blue, size: 19),
+              onPressed: () => editExpense(actualIndex),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red, size: 19),
+              onPressed: () => deleteExpense(actualIndex),
             ),
           ],
         ),
@@ -348,33 +482,43 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
     return Scaffold(
       backgroundColor: Colors.deepPurple.shade50,
       appBar: AppBar(
-        title: const Text('Personal Expenses Tracker'),
+        title: const Text('Personal Expenses'),
+        centerTitle: true,
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
-        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline),
+            onPressed: addExpense,
+          ),
+        ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Total expense card.
-                  Card(
-                    color: Colors.deepPurple,
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
+          : SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Total expense card.
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurple,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
                       child: Column(
                         children: [
                           const Text(
                             'Total Expenses',
                             style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
+                              color: Colors.white70,
+                              fontSize: 16,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
                           Text(
                             '₹${totalExpense.toStringAsFixed(2)}',
                             style: const TextStyle(
@@ -383,190 +527,96 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 5),
                           Text(
-                            'Number of Expenses: ${expenses.length}',
+                            '${expenses.length} expenses recorded',
                             style: const TextStyle(color: Colors.white),
                           ),
                         ],
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: 20),
+                    const SizedBox(height: 12),
 
-                  const Text(
-                    'Add Expense',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  TextField(
-                    controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Expense Name',
-                      border: OutlineInputBorder(),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  TextField(
-                    controller: amountController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Amount',
-                      border: OutlineInputBorder(),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  DropdownButtonFormField<String>(
-                    value: selectedCategory,
-                    decoration: const InputDecoration(
-                      labelText: 'Category',
-                      border: OutlineInputBorder(),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                    items: categories.map((category) {
-                      return DropdownMenuItem(
-                        value: category,
-                        child: Text(category),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedCategory = value!;
-                      });
-                    },
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Date: ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: pickDate,
-                        child: const Text('Select Date'),
-                      ),
-                    ],
-                  ),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: addExpense,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepPurple,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Add Expense'),
-                    ),
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  const Text(
-                    'Category-wise Summary',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  buildCategorySummary('Food', Icons.restaurant),
-                  buildCategorySummary('Transport', Icons.directions_bus),
-                  buildCategorySummary('Shopping', Icons.shopping_bag),
-                  buildCategorySummary('Education', Icons.school),
-                  buildCategorySummary('Other', Icons.category),
-
-                  const SizedBox(height: 20),
-
-                  const Text(
-                    'Expense History',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  if (expenses.isEmpty)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(20),
-                        child: Text('No expenses added yet'),
+                    const Text(
+                      'Category-wise Summary',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
 
-                  // Display all expenses.
-                  ...List.generate(expenses.length, (index) {
-                    final expense = expenses[index];
-                    DateTime date = DateTime.parse(expense['date']);
+                    ...categories
+                        .where((category) => category != 'All')
+                        .map(categoryCard),
 
-                    return Card(
-                      child: ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: Colors.deepPurple,
-                          child: Icon(
-                            Icons.currency_rupee,
-                            color: Colors.white,
-                          ),
-                        ),
-                        title: Text(expense['name']),
-                        subtitle: Text(
-                          '${expense['category']} • '
-                          '${date.day}/${date.month}/${date.year}',
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '₹${(expense['amount'] as num).toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
+                    const SizedBox(height: 8),
+
+                    const Text(
+                      'Expense History',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // Category filter buttons.
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: categories.map((category) {
+                          bool isSelected =
+                              selectedFilter == category;
+
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 7),
+                            child: ChoiceChip(
+                              label: Text(category),
+                              selected: isSelected,
+                              selectedColor: Colors.deepPurple,
+                              labelStyle: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : Colors.deepPurple,
                               ),
+                              onSelected: (selected) {
+                                setState(() {
+                                  selectedFilter = category;
+                                });
+                              },
                             ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.edit,
-                                color: Colors.blue,
-                              ),
-                              onPressed: () => editExpense(index),
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.delete,
-                                color: Colors.red,
-                              ),
-                              onPressed: () => deleteExpense(index),
-                            ),
-                          ],
-                        ),
+                          );
+                        }).toList(),
                       ),
-                    );
-                  }),
-                ],
+                    ),
+
+                    // Filtered expense list.
+                    Expanded(
+                      child: filteredExpenses.isEmpty
+                          ? const Center(
+                              child: Text('No expenses in this category'),
+                            )
+                          : ListView.builder(
+                              itemCount: filteredExpenses.length,
+                              itemBuilder: (context, index) {
+                                return expenseItem(
+                                  filteredExpenses[
+                                      filteredExpenses.length - 1 - index],
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
               ),
             ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: addExpense,
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }
