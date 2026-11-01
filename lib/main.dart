@@ -39,7 +39,6 @@ class _ExpensePageState extends State<ExpensePage> {
     'Other',
   ];
 
-  // Store expense details
   final List<Map<String, dynamic>> expenses = [];
 
   // Calculate total expense
@@ -53,7 +52,7 @@ class _ExpensePageState extends State<ExpensePage> {
     return total;
   }
 
-  // Add a new expense
+  // Add expense
   void addExpense() {
     String name = nameController.text;
     double? amount = double.tryParse(amountController.text);
@@ -61,7 +60,7 @@ class _ExpensePageState extends State<ExpensePage> {
     if (name.isEmpty || amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter valid expense details'),
+          content: Text('Please enter valid details'),
         ),
       );
       return;
@@ -80,11 +79,141 @@ class _ExpensePageState extends State<ExpensePage> {
     });
   }
 
-  // Delete an expense
-  void deleteExpense(int index) {
-    setState(() {
-      expenses.removeAt(index);
-    });
+  // Edit expense details
+  void editExpense(int index) {
+    final expense = expenses[index];
+
+    final TextEditingController editNameController =
+        TextEditingController(text: expense['name']);
+
+    final TextEditingController editAmountController =
+        TextEditingController(text: expense['amount'].toString());
+
+    String editCategory = expense['category'];
+    DateTime editDate = expense['date'];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Edit Expense'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: editNameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Expense Name',
+                      ),
+                    ),
+
+                    TextField(
+                      controller: editAmountController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Amount',
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    DropdownButtonFormField<String>(
+                      value: editCategory,
+                      decoration: const InputDecoration(
+                        labelText: 'Category',
+                      ),
+                      items: categories.map((category) {
+                        return DropdownMenuItem(
+                          value: category,
+                          child: Text(category),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          editCategory = value!;
+                        });
+                      },
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    TextButton.icon(
+                      onPressed: () async {
+                        DateTime? pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: editDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2030),
+                        );
+
+                        if (pickedDate != null) {
+                          setDialogState(() {
+                            editDate = pickedDate;
+                          });
+                        }
+                      },
+                      icon: const Icon(Icons.calendar_month),
+                      label: Text(
+                        '${editDate.day}/${editDate.month}/${editDate.year}',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    editNameController.dispose();
+                    editAmountController.dispose();
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Cancel'),
+                ),
+
+                ElevatedButton(
+                  onPressed: () {
+                    String name = editNameController.text;
+                    double? amount =
+                        double.tryParse(editAmountController.text);
+
+                    if (name.isEmpty || amount == null || amount <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Enter valid details'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    setState(() {
+                      expenses[index] = {
+                        'name': name,
+                        'amount': amount,
+                        'category': editCategory,
+                        'date': editDate,
+                      };
+                    });
+
+                    editNameController.dispose();
+                    editAmountController.dispose();
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Save Changes'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   // Select date
@@ -124,7 +253,6 @@ class _ExpensePageState extends State<ExpensePage> {
 
       body: Padding(
         padding: const EdgeInsets.all(16),
-
         child: Column(
           children: [
             TextField(
@@ -204,7 +332,6 @@ class _ExpensePageState extends State<ExpensePage> {
 
             const Divider(height: 25),
 
-            // Display expense list with delete option
             Expanded(
               child: expenses.isEmpty
                   ? const Center(
@@ -245,14 +372,14 @@ class _ExpensePageState extends State<ExpensePage> {
                                   ),
                                 ),
 
-                                // Delete button
+                                // Edit button
                                 IconButton(
                                   icon: const Icon(
-                                    Icons.delete,
-                                    color: Colors.red,
+                                    Icons.edit,
+                                    color: Colors.blue,
                                   ),
                                   onPressed: () {
-                                    deleteExpense(index);
+                                    editExpense(index);
                                   },
                                 ),
                               ],

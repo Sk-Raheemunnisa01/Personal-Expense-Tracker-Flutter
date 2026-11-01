@@ -95,5 +95,15 @@ The following screenshot shows the Personal Expenses Tracker application with th
 
 ![Experiment 4(A) Output](screenshots/exp4a_output.png)
 
+## Experiment 4(B) – Edit Expense Details
+
+In this experiment, an edit option is added to the Personal Expenses Tracker application. An edit icon is provided for each expense. The user can update the expense name, amount, category and date using an AlertDialog. The setState() method is used to update the expense details and automatically recalculate the total amount. This experiment helps in understanding dialog boxes and updating list data in Flutter.
+
+## Experiment 4(B) Output
+
+The following screenshot shows the Personal Expenses Tracker application with the edit expense feature.
+
+![Experiment 4(B) Output](screenshots/exp4b_output.png)
+
 
 
