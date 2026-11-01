@@ -105,5 +105,26 @@ The following screenshot shows the Personal Expenses Tracker application with th
 
 ![Experiment 4(B) Output](screenshots/exp4b_output.png)
 
+## Experiment 5(A) – Local Data Storage
+
+### Description
+In this experiment, local data storage is implemented in the Personal Expenses Tracker using the `shared_preferences` package.
+
+The application saves expense details such as expense name, amount, category, and date. The saved data is loaded automatically when the application is opened again.
+
+### Features
+- Save expense details locally.
+- Automatically load saved expenses.
+- Data remains available after refreshing the application.
+- Edit and delete saved expenses.
+- Automatically update the total expense amount.
+
+### Expected App Image
+The application displays the expense entry form, category selection, date picker, total expense, and saved expense list.
+
+### Experiment 5(A) Output
+
+![Experiment 5(A) Output](screenshots/exp5a_output.png)
+
 
 

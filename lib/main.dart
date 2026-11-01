@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -31,6 +33,8 @@ class _ExpensePageState extends State<ExpensePage> {
   String selectedCategory = 'Food';
   DateTime selectedDate = DateTime.now();
 
+  bool isLoading = true;
+
   final List<String> categories = [
     'Food',
     'Transport',
@@ -39,29 +43,57 @@ class _ExpensePageState extends State<ExpensePage> {
     'Other',
   ];
 
-  final List<Map<String, dynamic>> expenses = [];
+  List<Map<String, dynamic>> expenses = [];
 
   // Calculate total expense
   double get totalExpense {
     double total = 0;
 
     for (var expense in expenses) {
-      total += expense['amount'];
+      total += (expense['amount'] as num).toDouble();
     }
 
     return total;
   }
 
+  // Save expenses in local storage
+  Future<void> saveExpenses() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    String data = jsonEncode(expenses);
+
+    await prefs.setString('expenses', data);
+  }
+
+  // Load saved expenses
+  Future<void> loadExpenses() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    String? data = prefs.getString('expenses');
+
+    if (data != null) {
+      List decodedData = jsonDecode(data);
+
+      setState(() {
+        expenses = decodedData.map((item) {
+          return Map<String, dynamic>.from(item);
+        }).toList();
+      });
+    }
+
+    setState(() {
+      isLoading = false;
+    });
+  }
+
   // Add expense
-  void addExpense() {
-    String name = nameController.text;
+  Future<void> addExpense() async {
+    String name = nameController.text.trim();
     double? amount = double.tryParse(amountController.text);
 
     if (name.isEmpty || amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter valid details'),
-        ),
+        const SnackBar(content: Text('Enter valid expense details')),
       );
       return;
     }
@@ -71,26 +103,37 @@ class _ExpensePageState extends State<ExpensePage> {
         'name': name,
         'amount': amount,
         'category': selectedCategory,
-        'date': selectedDate,
+        'date': selectedDate.toIso8601String(),
       });
 
       nameController.clear();
       amountController.clear();
     });
+
+    await saveExpenses();
   }
 
-  // Edit expense details
+  // Delete expense
+  Future<void> deleteExpense(int index) async {
+    setState(() {
+      expenses.removeAt(index);
+    });
+
+    await saveExpenses();
+  }
+
+  // Edit expense
   void editExpense(int index) {
     final expense = expenses[index];
 
-    final TextEditingController editNameController =
+    final editNameController =
         TextEditingController(text: expense['name']);
 
-    final TextEditingController editAmountController =
+    final editAmountController =
         TextEditingController(text: expense['amount'].toString());
 
     String editCategory = expense['category'];
-    DateTime editDate = expense['date'];
+    DateTime editDate = DateTime.parse(expense['date']);
 
     showDialog(
       context: context,
@@ -118,8 +161,6 @@ class _ExpensePageState extends State<ExpensePage> {
                       ),
                     ),
 
-                    const SizedBox(height: 12),
-
                     DropdownButtonFormField<String>(
                       value: editCategory,
                       decoration: const InputDecoration(
@@ -132,13 +173,13 @@ class _ExpensePageState extends State<ExpensePage> {
                         );
                       }).toList(),
                       onChanged: (value) {
-                        setDialogState(() {
-                          editCategory = value!;
-                        });
+                        if (value != null) {
+                          setDialogState(() {
+                            editCategory = value;
+                          });
+                        }
                       },
                     ),
-
-                    const SizedBox(height: 12),
 
                     TextButton.icon(
                       onPressed: () async {
@@ -175,8 +216,8 @@ class _ExpensePageState extends State<ExpensePage> {
                 ),
 
                 ElevatedButton(
-                  onPressed: () {
-                    String name = editNameController.text;
+                  onPressed: () async {
+                    String name = editNameController.text.trim();
                     double? amount =
                         double.tryParse(editAmountController.text);
 
@@ -194,13 +235,18 @@ class _ExpensePageState extends State<ExpensePage> {
                         'name': name,
                         'amount': amount,
                         'category': editCategory,
-                        'date': editDate,
+                        'date': editDate.toIso8601String(),
                       };
                     });
 
+                    await saveExpenses();
+
                     editNameController.dispose();
                     editAmountController.dispose();
-                    Navigator.pop(context);
+
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepPurple,
@@ -216,7 +262,7 @@ class _ExpensePageState extends State<ExpensePage> {
     );
   }
 
-  // Select date
+  // Select expense date
   Future<void> selectDate() async {
     DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -230,6 +276,12 @@ class _ExpensePageState extends State<ExpensePage> {
         selectedDate = pickedDate;
       });
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loadExpenses();
   }
 
   @override
@@ -251,147 +303,161 @@ class _ExpensePageState extends State<ExpensePage> {
         foregroundColor: Colors.white,
       ),
 
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Expense Name',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.edit),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            TextField(
-              controller: amountController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Amount',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.currency_rupee),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            DropdownButtonFormField<String>(
-              value: selectedCategory,
-              decoration: const InputDecoration(
-                labelText: 'Select Category',
-                border: OutlineInputBorder(),
-              ),
-              items: categories.map((category) {
-                return DropdownMenuItem(
-                  value: category,
-                  child: Text(category),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedCategory = value!;
-                });
-              },
-            ),
-
-            const SizedBox(height: 10),
-
-            OutlinedButton.icon(
-              onPressed: selectDate,
-              icon: const Icon(Icons.calendar_month),
-              label: Text(
-                'Date: ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            ElevatedButton.icon(
-              onPressed: addExpense,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Expense'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple,
-                foregroundColor: Colors.white,
-              ),
-            ),
-
-            const SizedBox(height: 15),
-
-            Text(
-              'Total Expense: ₹${totalExpense.toStringAsFixed(2)}',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.deepPurple,
-              ),
-            ),
-
-            const Divider(height: 25),
-
-            Expanded(
-              child: expenses.isEmpty
-                  ? const Center(
-                      child: Text('No expenses added yet!'),
-                    )
-                  : ListView.builder(
-                      itemCount: expenses.length,
-                      itemBuilder: (context, index) {
-                        final expense = expenses[index];
-
-                        return Card(
-                          color: Colors.white,
-                          child: ListTile(
-                            leading: const CircleAvatar(
-                              backgroundColor: Colors.deepPurple,
-                              child: Icon(
-                                Icons.currency_rupee,
-                                color: Colors.white,
-                              ),
-                            ),
-
-                            title: Text(expense['name']),
-
-                            subtitle: Text(
-                              '${expense['category']} - '
-                              '${expense['date'].day}/'
-                              '${expense['date'].month}/'
-                              '${expense['date'].year}',
-                            ),
-
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  '₹${expense['amount'].toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-
-                                // Edit button
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.edit,
-                                    color: Colors.blue,
-                                  ),
-                                  onPressed: () {
-                                    editExpense(index);
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Expense Name',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.edit),
                     ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  TextField(
+                    controller: amountController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Amount',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.currency_rupee),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  DropdownButtonFormField<String>(
+                    value: selectedCategory,
+                    decoration: const InputDecoration(
+                      labelText: 'Select Category',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: categories.map((category) {
+                      return DropdownMenuItem(
+                        value: category,
+                        child: Text(category),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          selectedCategory = value;
+                        });
+                      }
+                    },
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  OutlinedButton.icon(
+                    onPressed: selectDate,
+                    icon: const Icon(Icons.calendar_month),
+                    label: Text(
+                      'Date: ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  ElevatedButton.icon(
+                    onPressed: addExpense,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Expense'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.deepPurple,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  Text(
+                    'Total Expense: ₹${totalExpense.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurple,
+                    ),
+                  ),
+
+                  const Divider(height: 25),
+
+                  Expanded(
+                    child: expenses.isEmpty
+                        ? const Center(
+                            child: Text('No expenses added yet!'),
+                          )
+                        : ListView.builder(
+                            itemCount: expenses.length,
+                            itemBuilder: (context, index) {
+                              final expense = expenses[index];
+
+                              final date =
+                                  DateTime.parse(expense['date']);
+
+                              return Card(
+                                color: Colors.white,
+                                child: ListTile(
+                                  leading: const CircleAvatar(
+                                    backgroundColor: Colors.deepPurple,
+                                    child: Icon(
+                                      Icons.currency_rupee,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+
+                                  title: Text(expense['name']),
+
+                                  subtitle: Text(
+                                    '${expense['category']} - '
+                                    '${date.day}/${date.month}/${date.year}',
+                                  ),
+
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '₹${(expense['amount'] as num).toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.edit,
+                                          color: Colors.blue,
+                                        ),
+                                        onPressed: () {
+                                          editExpense(index);
+                                        },
+                                      ),
+
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.delete,
+                                          color: Colors.red,
+                                        ),
+                                        onPressed: () {
+                                          deleteExpense(index);
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }
