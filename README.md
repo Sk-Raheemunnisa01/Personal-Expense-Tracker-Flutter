@@ -126,5 +126,29 @@ The application displays the expense entry form, category selection, date picker
 
 ![Experiment 5(A) Output](screenshots/exp5a_output.png)
 
+## Experiment 5(B) – Expense Summary and Category-wise Analysis
+
+### Description
+In this experiment, a dashboard is developed for the Personal Expenses Tracker to display total expenses and category-wise spending details.
+
+The application calculates the amount spent in each category and displays the results using colourful progress bars.
+
+### Features
+- Display total expenses.
+- Show the number of recorded expenses.
+- Calculate category-wise expenses.
+- Display spending percentages using progress bars.
+- View recent expense details.
+- Add, edit, and delete expenses.
+- Automatically update the summary when expenses change.
+- Maintain expense records using SharedPreferences.
+
+### Expected App Image
+The dashboard displays the total expense amount, category-wise summary, colourful progress bars, and recent expenses.
+
+### Experiment 5(B) Output
+
+![Experiment 5(B) Output](screenshots/exp5b_output.png)
+
 
 
