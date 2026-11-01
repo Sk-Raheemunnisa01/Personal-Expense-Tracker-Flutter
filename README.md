@@ -168,6 +168,24 @@ The application displays category filter chips and the expenses based on the sel
 ### Experiment 6(A) Output
 ![Experiment 6(A) Output](screenshots/exp6a_output.png)
 
+## Experiment 6(B): Search Expenses by Name
+
+### Description
+In this experiment, a search feature was added to the Personal Expenses Tracker to help users find expenses by entering their names.
+
+### Features
+- Added a search bar to search expenses by name.
+- Displays matching expenses based on the entered text.
+- Added a clear button to reset the search.
+- Search works together with category filtering.
+- Existing add, edit, delete and local storage features are maintained.
+
+### Expected App Image
+The application displays a search bar above the expense history.
+
+### Experiment 6(B) Output
+![Experiment 6(B) Output](screenshots/exp6b_output.png)
+
 
 
 
