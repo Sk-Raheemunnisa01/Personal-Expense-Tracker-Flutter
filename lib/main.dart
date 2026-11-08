@@ -38,6 +38,8 @@ class _ExpenseHomeState extends State<ExpenseHome> {
   String selectedFilter = 'All';
   String searchText = '';
 
+  double monthlyBudget = 5000;
+
   final TextEditingController searchController =
       TextEditingController();
 
@@ -57,26 +59,43 @@ class _ExpenseHomeState extends State<ExpenseHome> {
     Colors.pink,
   ];
 
+  String get currentMonth {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}';
+  }
+
   @override
   void initState() {
     super.initState();
-    loadExpenses();
+    loadData();
   }
 
-  // Load expenses from local storage
-  Future<void> loadExpenses() async {
+  // Load expenses and budget from storage
+  Future<void> loadData() async {
     final prefs = await SharedPreferences.getInstance();
     final savedData = prefs.getString('expenses');
 
+    List<Map<String, dynamic>> loadedExpenses = [];
+
     if (savedData != null) {
-      setState(() {
-        expenses = List<Map<String, dynamic>>.from(
-          jsonDecode(savedData).map(
-            (item) => Map<String, dynamic>.from(item),
-          ),
-        );
-      });
+      loadedExpenses = List<Map<String, dynamic>>.from(
+        jsonDecode(savedData).map(
+          (item) => Map<String, dynamic>.from(item),
+        ),
+      );
+
+      // Add a month to older expense records
+      for (var expense in loadedExpenses) {
+        expense['month'] ??= currentMonth;
+      }
     }
+
+    setState(() {
+      expenses = loadedExpenses;
+      monthlyBudget = prefs.getDouble('monthlyBudget') ?? 5000;
+    });
+
+    await saveExpenses();
   }
 
   // Save expenses
@@ -85,7 +104,13 @@ class _ExpenseHomeState extends State<ExpenseHome> {
     await prefs.setString('expenses', jsonEncode(expenses));
   }
 
-  // Calculate total expenses
+  // Save monthly budget
+  Future<void> saveBudget() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('monthlyBudget', monthlyBudget);
+  }
+
+  // Calculate all-time total
   double get total {
     return expenses.fold(
       0.0,
@@ -94,7 +119,27 @@ class _ExpenseHomeState extends State<ExpenseHome> {
     );
   }
 
-  // Calculate total for each category
+  // Calculate current month's spending
+  double get monthlySpending {
+    return expenses
+        .where((item) => item['month'] == currentMonth)
+        .fold(
+          0.0,
+          (sum, item) =>
+              sum + (item['amount'] as num).toDouble(),
+        );
+  }
+
+  double get remainingBudget {
+    return monthlyBudget - monthlySpending;
+  }
+
+  double get budgetProgress {
+    if (monthlyBudget <= 0) return 0;
+    return (monthlySpending / monthlyBudget).clamp(0.0, 1.0);
+  }
+
+  // Category total
   double categoryTotal(String category) {
     return expenses
         .where((item) => item['category'] == category)
@@ -118,6 +163,54 @@ class _ExpenseHomeState extends State<ExpenseHome> {
 
       return matchesCategory && matchesSearch;
     }).toList();
+  }
+
+  // Change monthly budget
+  void showBudgetDialog() {
+    final controller = TextEditingController(
+      text: monthlyBudget.toStringAsFixed(0),
+    );
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Set Monthly Budget'),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Budget Amount',
+              prefixText: '₹ ',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final value = double.tryParse(controller.text);
+
+                if (value == null || value <= 0) return;
+
+                setState(() {
+                  monthlyBudget = value;
+                });
+
+                await saveBudget();
+
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                }
+              },
+              child: const Text('Save Budget'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   // Add or edit expense
@@ -181,8 +274,7 @@ class _ExpenseHomeState extends State<ExpenseHome> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () =>
-                      Navigator.pop(dialogContext),
+                  onPressed: () => Navigator.pop(dialogContext),
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
@@ -202,6 +294,9 @@ class _ExpenseHomeState extends State<ExpenseHome> {
                         'name': name,
                         'amount': amount,
                         'category': category,
+                        'month': index == null
+                            ? currentMonth
+                            : expenses[index]['month'] ?? currentMonth,
                       };
 
                       if (index == null) {
@@ -234,6 +329,121 @@ class _ExpenseHomeState extends State<ExpenseHome> {
     });
 
     await saveExpenses();
+  }
+
+  // Budget dashboard card
+  Widget buildBudgetCard() {
+    final bool exceeded = monthlySpending > monthlyBudget;
+    final bool warning = budgetProgress >= 0.8 && !exceeded;
+
+    final Color statusColor = exceeded
+        ? Colors.red
+        : warning
+            ? Colors.orange
+            : Colors.green;
+
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Monthly Budget',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurple,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: showBudgetDialog,
+                  icon: const Icon(
+                    Icons.edit,
+                    color: Colors.deepPurple,
+                  ),
+                  tooltip: 'Edit budget',
+                ),
+              ],
+            ),
+
+            Text(
+              '₹${monthlySpending.toStringAsFixed(2)} spent this month',
+              style: const TextStyle(fontSize: 15),
+            ),
+
+            const SizedBox(height: 12),
+
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: LinearProgressIndicator(
+                value: budgetProgress,
+                minHeight: 13,
+                backgroundColor: Colors.deepPurple.shade100,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  statusColor,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Budget: ₹${monthlyBudget.toStringAsFixed(0)}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  exceeded
+                      ? 'Over by ₹${(-remainingBudget).toStringAsFixed(0)}'
+                      : 'Left: ₹${remainingBudget.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    color: statusColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 10),
+
+            if (exceeded)
+              const Text(
+                'Budget exceeded! Try to reduce your spending.',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              )
+            else if (warning)
+              const Text(
+                'Warning! You have used 80% or more of your budget.',
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontWeight: FontWeight.bold,
+                ),
+              )
+            else
+              const Text(
+                'You are within your monthly budget.',
+                style: TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   // Pie chart
@@ -334,8 +544,6 @@ class _ExpenseHomeState extends State<ExpenseHome> {
               ],
             );
           }).toList(),
-
-          // Hide crowded number labels on the left
           titlesData: FlTitlesData(
             leftTitles: const AxisTitles(
               sideTitles: SideTitles(showTitles: false),
@@ -361,10 +569,7 @@ class _ExpenseHomeState extends State<ExpenseHome> {
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(
                       categories[index],
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: const TextStyle(fontSize: 10),
                     ),
                   );
                 },
@@ -406,13 +611,9 @@ class _ExpenseHomeState extends State<ExpenseHome> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-
             // Total expenses
             Card(
               color: Colors.deepPurple,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
               child: Padding(
                 padding: const EdgeInsets.all(18),
                 child: Column(
@@ -439,13 +640,11 @@ class _ExpenseHomeState extends State<ExpenseHome> {
               ),
             ),
 
-            const SizedBox(height: 10),
+            // Monthly budget
+            buildBudgetCard(),
 
-            // Pie chart section
+            // Pie chart
             Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -467,13 +666,8 @@ class _ExpenseHomeState extends State<ExpenseHome> {
               ),
             ),
 
-            const SizedBox(height: 10),
-
-            // Bar chart section
+            // Bar chart
             Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -493,9 +687,7 @@ class _ExpenseHomeState extends State<ExpenseHome> {
               ),
             ),
 
-            const SizedBox(height: 12),
-
-            // Search bar
+            // Search
             TextField(
               controller: searchController,
               decoration: InputDecoration(
@@ -574,9 +766,6 @@ class _ExpenseHomeState extends State<ExpenseHome> {
             else
               ...filteredExpenses.map((expense) {
                 return Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                   child: ListTile(
                     title: Text(
                       expense['name'],

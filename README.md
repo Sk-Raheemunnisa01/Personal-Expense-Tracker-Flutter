@@ -204,6 +204,27 @@ The application displays pie and bar charts showing the user's expense distribut
 ### Experiment 7 Output
 ![Experiment 7 Output](screenshots/exp7_output.png)
 
+## Experiment 8: Monthly Budget Management and Expense Alerts
+
+### Description
+In this experiment, a monthly budget management feature was added to the Personal Expenses Tracker. Users can set a spending limit and monitor their expenses.
+
+### Features
+- Set and update a monthly budget.
+- Display monthly spending and remaining budget.
+- Show a progress bar for budget usage.
+- Display a warning when 80% of the budget is used.
+- Show an alert when the budget is exceeded.
+- Save the budget using SharedPreferences.
+- Maintain charts, search, category filtering and expense management features.
+
+### Expected App Image
+The application displays a monthly budget card with spending progress and budget alerts.
+
+### Experiment 8 Output
+![Experiment 8 Output](screenshots/exp8_output.png)
+
+
 
 
 
