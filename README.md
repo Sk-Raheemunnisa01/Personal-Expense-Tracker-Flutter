@@ -186,6 +186,25 @@ The application displays a search bar above the expense history.
 ### Experiment 6(B) Output
 ![Experiment 6(B) Output](screenshots/exp6b_output.png)
 
+## Experiment 7: Expense Data Visualization using Charts
+
+### Description
+In this experiment, charts were added to the Personal Expenses Tracker to display spending information visually.
+
+### Features
+- Added a pie chart for category-wise expense distribution.
+- Added a bar chart to compare spending across categories.
+- Charts update automatically when expenses are added, edited or deleted.
+- Maintained search and category filtering.
+- Continued using SharedPreferences for local data storage.
+
+### Expected App Image
+The application displays pie and bar charts showing the user's expense distribution and category-wise spending.
+
+### Experiment 7 Output
+![Experiment 7 Output](screenshots/exp7_output.png)
+
+
 
 
 
