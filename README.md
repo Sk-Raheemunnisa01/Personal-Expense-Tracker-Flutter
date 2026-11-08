@@ -224,6 +224,27 @@ The application displays a monthly budget card with spending progress and budget
 ### Experiment 8 Output
 ![Experiment 8 Output](screenshots/exp8_output.png)
 
+## Experiment 9: Date-wise Expense Tracking
+
+### Description
+In this experiment, date-wise expense tracking was added to the Personal Expenses Tracker. Users can select expense dates, view daily spending totals and filter expenses by date.
+
+### Features
+- Added date selection when adding or editing expenses.
+- Displayed dates in the expense history.
+- Grouped expenses according to their dates.
+- Displayed daily expense totals.
+- Added date-wise filtering.
+- Maintained monthly budget management and alerts.
+- Preserved charts, search, category filters and local storage.
+
+### Expected App Image
+The application displays expenses grouped by date with daily spending totals and a date filter.
+
+### Experiment 9 Output
+![Experiment 9 Output](screenshots/exp9_output.png)
+
+
 
 
 
